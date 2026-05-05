@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login | Fraud Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <div class="login-container glass-panel">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h1>Secure Login</h1>
+        <p class="subtitle">Protected by Intelligent Risk Engine</p>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter 'user'" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter 'password'" required>
+            </div>
+
+            <div class="testing-controls">
+                <label for="mockIp">Simulation Scenario</label>
+                <select id="mockIp">
+                    <option value="127.0.0.1">Normal Login (Local IP)</option>
+                    <option value="203.0.113.50">VPN Simulation (Russia IP)</option>
+                    <option value="198.51.100.22">VPN Simulation (China IP)</option>
+                </select>
+                <small>Select an IP to test the risk engine.</small>
+            </div>
+
+            <button type="submit" class="btn-primary" id="loginBtn">Authenticate <span class="loader hidden" id="loginLoader"></span></button>
+        </form>
+
+        <div id="alertBox" class="alert hidden">
+            <span id="alertIcon">⚠️</span>
+            <p id="alertMessage"></p>
+        </div>
+        
+        <div id="otpBox" class="otp-container hidden">
+            <p>Verification Code Sent to your Email/Phone</p>
+            <div class="input-group">
+                <input type="text" id="otpCode" placeholder="Enter 6-digit OTP">
+            </div>
+            <button class="btn-secondary" onclick="window.location.reload()">Verify & Login</button>
+        </div>
+        
+        <div style="margin-top:20px; text-align:center;">
+             <a href="dashboard.html" style="color: #a0aec0; font-size: 0.85rem; text-decoration: none;">View Admin Dashboard &rarr;</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('loginBtn');
+            const loader = document.getElementById('loginLoader');
+            const alertBox = document.getElementById('alertBox');
+            const otpBox = document.getElementById('otpBox');
+            const alertMsg = document.getElementById('alertMessage');
+            const mockIp = document.getElementById('mockIp').value;
+            
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            alertBox.classList.add('hidden');
+            alertBox.className = 'alert hidden'; // reset classes
+            otpBox.classList.add('hidden');
+
+            const payload = {
+                username: e.target.username.value,
+                password: e.target.password.value
+            };
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Mock-IP': mockIp
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                alertBox.classList.remove('hidden');
+                
+                if (data.action === 'SAFE') {
+                    alertBox.classList.add('alert-success');
+                    alertMsg.textContent = `Access Granted. Risk Score: ${data.riskScore}/100. ${data.message}`;
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else if (data.action === 'OTP_REQUIRED') {
+                    alertBox.classList.add('alert-warning');
+                    alertMsg.textContent = `Medium Risk (${data.riskScore}/100) detected from new location.`;
+                    otpBox.classList.remove('hidden');
+                    btn.classList.add('hidden');
+                } else if (data.action === 'BLOCKED') {
+                    alertBox.classList.add('alert-danger');
+                    alertMsg.textContent = `ACCESS DENIED. High Risk (${data.riskScore}/100). Account locked.`;
+                    btn.disabled = false;
+                } else {
+                    alertBox.classList.add('alert-danger');
+                    alertMsg.textContent = data.message;
+                    btn.disabled = false;
+                }
+                
+            } catch (err) {
+                alertBox.classList.remove('hidden');
+                alertBox.classList.add('alert-danger');
+                alertMsg.textContent = 'Server error occurred.';
+                btn.disabled = false;
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Fraud Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { align-items: flex-start; padding: 2rem; overflow-y: auto; }
+        .dashboard-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+        .stat-card h3 { font-size: 1rem; color: #a0aec0; margin-bottom: 0.5rem; }
+        .stat-card .value { font-size: 2.5rem; font-weight: 800; color: #fff; }
+        
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th { color: #a0aec0; font-weight: 600; }
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .badge.safe { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge.warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .badge.danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2" style="top: -10%; left: 80%;"></div>
+    
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>Fraud Command Center</h1>
+            <a href="/" class="btn-secondary" style="text-decoration: none; display: inline-block;">Back to Login</a>
+        </div>
+        
+        <div class="glass-panel" style="max-width: 100%; padding: 2rem;">
+            <h2>Recent Login Attempts</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>IP Address</th>
+                            <th>Location</th>
+                            <th>Risk Score</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/admin/logs');
+                const data = await res.json();
+                
+                const tbody = document.getElementById('logsBody');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No recent login attempts.</td></tr>';
+                    return;
+                }
+
+                data.forEach(log => {
+                    const row = document.createElement('tr');
+                    
+                    let badgeClass = 'safe';
+                    let statusLabel = log.status;
+                    
+                    if (log.riskScore >= 71 || log.status === 'BLOCKED') badgeClass = 'danger';
+                    else if (log.riskScore >= 31 || log.status === 'OTP_CHALLENGE') badgeClass = 'warning';
+                    
+                    if(log.status === 'FAILED_PASSWORD') { badgeClass = 'warning'; statusLabel = 'Invalid Creds'; }
+
+                    const time = new Date(log.timestamp).toLocaleTimeString();
+                    
+                    row.innerHTML = `
+                        <td>${time}</td>
+                        <td>${log.username}</td>
+                        <td style="font-family: monospace;">${log.ipAddress}</td>
+                        <td>${log.location}</td>
+                        <td><strong>${log.riskScore}</strong></td>
+                        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Failed to load logs");
+            }
+        }
+
+        fetchLogs();
+        setInterval(fetchLogs, 3000); // Poll every 3 seconds
+    </script>
+</body>
+</html>
