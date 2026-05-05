@@ -13,26 +13,11 @@ public class RiskEngineService {
      */
     public int calculateRiskScore(String ipAddress, String userAgent, String username) {
         int score = 0;
-
-        if (ipAddress == null || ipAddress.isBlank()) {
-            score += 20;
-        } else if ("203.0.113.50".equals(ipAddress)) {
-            score += 85;
-        } else if ("198.51.100.22".equals(ipAddress)) {
-            score += 55;
-        } else if (!ipAddress.startsWith("127.") && !"0:0:0:0:0:0:0:1".equals(ipAddress)) {
-            score += 15;
-        }
-
-        if (userAgent == null || userAgent.isBlank()) {
-            score += 20;
-        }
-
-        if (username == null || username.isBlank()) {
-            score += 10;
-        }
-
-        score = Math.min(score, 100);
+        
+        // Placeholder for velocity checks (e.g., redis brute force detection)
+        // Placeholder for geolocation checks (e.g., maxmind / ipinfo.io)
+        // Placeholder for device fingerprinting
+        
         return score;
     }
 }
